@@ -1,0 +1,913 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>사고 관리</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
+    --primary:#2563eb; --primary-10:#dbeafe; --border:#e5e7eb;
+    --si:#ef4444; --lti:#8b5cf6; --acha:#10b981; --warning:#f59e0b; --fac:#334155; --rwc:#ec4899;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', Arial, sans-serif;}
+  .app{max-width:1100px;margin:20px auto;padding:0 14px 40px;}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  h1{font-size:20px;margin:0;}
+  .tabs{display:flex;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .tab-btn{padding:10px 14px;cursor:pointer;border:0;background:transparent;font-weight:600;color:var(--muted)}
+  .tab-btn.active{background:var(--primary-10);color:var(--primary)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .col{flex:1 1 220px;min-width:220px}
+  label{display:block;font-size:12px;color:var(--muted);margin:6px 0}
+  select,input[type="date"],input[type="text"],textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff;box-sizing:border-box}
+  textarea{min-height:90px;resize:vertical}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button, .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:600}
+  .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn-danger{background:#fee2e2;border-color:#fecaca;color:#b91c1c}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted)}
+  /* Calendar */
+  .cal-header{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:10px 0}
+  .cal-title{font-weight:700}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .dow{font-size:12px;color:var(--muted);text-align:center}
+  .day{background:#fff;border:1px solid var(--border);border-radius:10px;min-height:92px;padding:8px;display:flex;flex-direction:column;gap:6px;position:relative;cursor:pointer}
+  .day.inactive{opacity:.45}
+  .day .num{font-size:12px;color:var(--muted)}
+  .dots{display:flex;gap:4px;flex-wrap:wrap}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot.si{background:var(--si)} .dot.lti{background:var(--lti)} .dot.acha{background:var(--acha)}
+  .dot.mtc{background:var(--warning)} .dot.fac{background:var(--fac)} .dot.rwc{background:var(--rwc)}
+  .pill{font-size:10px;border-radius:999px;padding:2px 6px;display:inline-flex;align-items:center;gap:4px}
+  .pill.si{background:#fee2e2;color:#991b1b}
+  .pill.lti{background:#ede9fe;color:#5b21b6}
+  .pill.acha{background:#d1fae5;color:#065f46}
+  .pill.mtc{background:#fef3c7;color:#92400e}
+  .pill.fac{background:#e2e8f0;color:#0f172a}
+  .pill.rwc{background:#fce7f3;color:#9d174d}
+  .list{margin-top:12px;display:grid;gap:8px}
+  .item{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px;display:flex;gap:10px;align-items:flex-start}
+  .badge{font-size:11px;border-radius:999px;padding:2px 8px;display:inline-flex;align-items:center;margin-right:6px}
+  .badge.si{background:#fee2e2;color:#991b1b}
+  .badge.lti{background:#ede9fe;color:#5b21b6}
+  .badge.acha{background:#d1fae5;color:#065f46}
+  .badge.mtc{background:#fef3c7;color:#92400e}
+  .badge.fac{background:#e2e8f0;color:#0f172a}
+  .badge.rwc{background:#fce7f3;color:#9d174d}
+  .thumbs{display:flex;gap:6px;flex-wrap:wrap}
+  .thumbs img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+  .sidebar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px}
+  .sidebar select{height:32px;padding:6px 10px;font-size:12px;border-radius:8px;min-width:140px}
+  .summary{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#fff;max-width:760px;width:96vw;border-radius:12px;border:1px solid var(--border);padding:16px}
+  .modal h3{margin:0 0 6px 0}
+  .gallery{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .gallery img{height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer}
+  .full{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:60}
+  .full img{max-width:92vw;max-height:92vh;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .footer-tools{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+  /* Summary chart */
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:12px}
+  .summary-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,.08);transition:transform 0.2s ease, box-shadow 0.2s ease}
+  .summary-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+  .summary-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-weight:600}
+  .summary-icon{font-size:18px}
+  .chart{margin-top:12px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .bar-label{width:140px;font-size:14px;color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .bar-wrap{flex:1;background:#f3f4f6;border-radius:999px;height:16px;position:relative;overflow:hidden}
+  .bar{height:100%;border-radius:999px;transition:width 0.5s ease}
+  .bar.si{background:var(--si)}
+  .bar.lti{background:var(--lti)}
+  .bar.acha{background:var(--acha)}
+  .bar.mtc{background:var(--warning)}
+  .bar.fac{background:var(--fac)}
+  .bar.rwc{background:var(--rwc)}
+  .bar-value{width:50px;text-align:right;font-size:14px;color:var(--text);font-weight:500;margin-left:8px}
+  table.summary-table{width:100%;border-collapse:collapse;margin-top:12px;border-radius:8px;overflow:hidden}
+  table.summary-table th{background:var(--primary-10);color:var(--primary);font-weight:600;padding:8px 10px;border:1px solid var(--border);text-align:left;font-size:14px}
+  table.summary-table td{padding:8px 10px;border:1px solid var(--border);text-align:left;font-size:14px}
+  table.summary-table tr:nth-child(even){background:#fafafa}
+  @media (max-width:640px){
+    .col{min-width:100%}
+    .day{min-height:86px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>사고 관리 – 캘린더 & 등록</h1>
+    <div class="tabs">
+      <button class="tab-btn" data-tab="summary">요약</button>
+      <button class="tab-btn active" data-tab="calendar">캘린더</button>
+      <button class="tab-btn" data-tab="form">등록</button>
+    </div>
+  </header>
+
+  <!-- Calendar Panel -->
+  <!-- Summary Panel -->
+  <section id="summary" class="card" style="display:none;">
+    <h2 style="margin:0 0 8px 0;">요약 (사고 유형별 최다 발생 공정)</h2>
+    <div id="summaryContent"></div>
+  </section>
+
+  <section id="calendar" class="card">
+    <div class="cal-header">
+      <div class="row" style="align-items:center; flex:1;">
+        <div class="actions">
+          <button class="btn" id="prevMonth" aria-label="이전 달">◀︎</button>
+          <div class="cal-title" id="calTitle">로딩중…</div>
+          <button class="btn" id="nextMonth" aria-label="다음 달">▶︎</button>
+          <button class="btn" id="todayBtn">오늘</button>
+        </div>
+      </div>
+      <div class="sidebar" id="filtersBar">
+        <select id="filterProcess" title="공정">
+          <option value="">공정(전체)</option>
+          <option>GWJ2 IB</option><option>GWJ2 OB</option>
+          <option>HUB</option><option>ICQA</option>
+          <option>GWJ5 IB</option><option>GWJ5 OB</option>
+        </select>
+        <select id="filterSub" title="세부공정">
+          <option value="">세부공정(전체)</option>
+        </select>
+        <select id="filterType" title="사건종류">
+          <option value="">사건종류(전체)</option>
+          <option>SI</option><option>LTI</option><option>MTC</option>
+          <option>FAC</option><option>RWC</option><option>아차</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cal-grid" id="dow">
+      <div class="dow">일</div><div class="dow">월</div><div class="dow">화</div><div class="dow">수</div><div class="dow">목</div><div class="dow">금</div><div class="dow">토</div>
+    </div>
+    <div class="cal-grid" id="calGrid" aria-live="polite"></div>
+
+    <div class="row" style="justify-content:space-between;align-items:center;margin-top:12px;">
+      <div class="summary" id="monthSummary"></div>
+      <div class="actions">
+        <button class="btn btn-danger" id="clearBtn" title="모든 데이터 초기화">데이터 초기화</button>
+      </div>
+    </div>
+
+    <div class="list" id="dayList" aria-live="polite"></div>
+  </section>
+
+  <!-- Form Panel -->
+  <section id="form" class="card" style="display:none;">
+    <h2 style="margin:0 0 8px 0;">사건 등록</h2>
+    <form id="incidentForm">
+      <div class="row">
+        <div class="col">
+          <label>공정</label>
+          <select name="process" id="formProcess" required>
+            <option value="" disabled selected>선택</option>
+            <option>GWJ2 IB</option><option>GWJ2 OB</option>
+            <option>HUB</option><option>ICQA</option>
+            <option>GWJ5 IB</option><option>GWJ5 OB</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>발생일자</label>
+          <input type="date" name="date" required />
+        </div>
+        <div class="col">
+          <label>세부공정</label>
+          <select name="subprocess" id="formSubprocess" required>
+            <option value="" disabled selected>공정을 먼저 선택</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>발생장소</label>
+          <input type="text" name="location" placeholder="예: 7.1F Each Station" required />
+        </div>
+        <div class="col">
+          <label>사건종류</label>
+          <select name="type" required>
+            <option value="" disabled selected>선택</option>
+            <option>SI</option><option>LTI</option><option>MTC</option>
+            <option>FAC</option><option>RWC</option><option>아차</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col" style="flex:1 1 100%">
+          <label>사건개요</label>
+          <textarea name="summary" placeholder="간단히 작성해주세요" required></textarea>
+        </div>
+      </div>
+      <div class="row" style="align-items:center">
+        <div class="col">
+          <label>사진 업로드 (여러 장 가능)</label>
+          <input type="file" name="photos" id="photoInput" accept="image/*" multiple />
+          <div class="hint">이미지는 저장 시 자동으로 압축/리사이즈됩니다(최대 1600px, 품질 0.7).</div>
+        </div>
+      </div>
+      <div class="row" id="previewRow" style="margin-top:8px;gap:8px"></div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn-primary" type="submit">저장</button>
+        <button class="btn" type="reset">초기화</button>
+        <button class="btn-ghost" type="button" id="goCalendar">캘린더로 이동</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="detailBackdrop">
+  <div class="modal">
+    <h3 id="detailTitle">사건 상세</h3>
+    <div class="hint" id="detailMeta"></div>
+    <p id="detailSummary" style="white-space:pre-wrap;margin:8px 0 0 0"></p>
+    <div class="gallery" id="detailGallery"></div>
+    <div class="footer-tools">
+      <button class="btn" id="editBtn">수정</button>
+      <button class="btn-danger" id="deleteBtn">삭제</button>
+      <button class="btn" id="closeDetail">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen image -->
+<div class="full" id="fullBackdrop">
+  <img id="fullImg" alt="확대 이미지" />
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyB4xulIFEUlSNzLDD2rQ3RWFJAVzIBOuuw",
+  authDomain: "incidents-b509c.firebaseapp.com",
+  projectId: "incidents-b509c",
+  storageBucket: "incidents-b509c.firebasestorage.app",
+  messagingSenderId: "1077169077732",
+  appId: "1:1077169077732:web:2449baa462f32b6c041bf1",
+  measurementId: "G-VN275W3KZY"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app);
+
+/* ====== Firebase Firestore 대체 ====== */
+const incidentsCollection = collection(db, 'incidents');
+
+/* ====== 유틸 ====== */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const pad2 = n => n.toString().padStart(2,'0');
+const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const parseDate = (str) => { const [y,m,dd]=str.split('-').map(Number); return new Date(y, m-1, dd); };
+const prettyYMD = (str) => { const [y,m,d]=str.split('-'); return `${y}년 ${Number(m)}월 ${Number(d)}일`; };
+
+// 사건 종류 → 색상 클래스
+function typeClass(t){
+  switch(t){
+    case 'SI': return 'si'; case 'LTI': return 'lti'; case '아차': return 'acha';
+    case 'MTC': return 'mtc'; case 'FAC': return 'fac'; case 'RWC': return 'rwc';
+    default: return 'acha';
+  }
+}
+
+/* ====== 세부공정 옵션 매핑 ====== */
+const SUB_OPTIONS = {
+  ICQA: ['etc.'],
+  IB:   ['Unload','Receive','Stow','etc.'],
+  OB:   ['Pick','Pack','etc.'],
+  HUB:  ['etc.']
+};
+function bucketFromProcess(proc=''){
+  if(!proc) return 'IB';
+  const P = proc.toUpperCase();
+  if (P.includes('HUB')) return 'HUB';
+  if (P.includes('ICQA')) return 'ICQA';
+  if (P.includes('OB')) return 'OB';
+  return 'IB'; // GWJ2 IB/GWJ5 IB 등
+}
+function buildOptions(selectEl, options, {placeholder, keepAll=false, allowEmpty=true, selected}={}){
+  selectEl.innerHTML = '';
+  if(allowEmpty){
+    const opt = document.createElement('option');
+    opt.value = ''; opt.textContent = placeholder || '선택';
+    if(selected==null) opt.selected = true;
+    selectEl.appendChild(opt);
+  }
+  options.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    if(selected === v) opt.selected = true;
+    selectEl.appendChild(opt);
+  });
+  if(keepAll){
+    const first = selectEl.querySelector('option[value=""]');
+    if(first) first.textContent = placeholder || '전체';
+  }
+}
+
+/* ====== 상태 ====== */
+let state = {
+  month: new Date().getMonth(),
+  year: new Date().getFullYear(),
+  filter:{process:'', sub:'', type:''},
+  incidents: [],           // Firestore에서 가져온 데이터
+  viewListDate: null,      // yyyy-mm-dd
+  currentDetailId: null,
+  editingId: null
+};
+
+/* ====== Firestore 데이터 저장/로직 ====== */
+async function loadIncidentsFromSP(year, month){
+  const q = query(incidentsCollection, where('year', '==', year), where('month', '==', month));
+  const querySnapshot = await getDocs(q);
+  state.incidents = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+async function createIncidentOnSP(incident, files){
+  const photos = [];
+  for(let i=0;i<files.length;i++){
+    const f = files[i];
+    const dataUrl = await compressImage(f, 1600, 0.7);
+    photos.push(dataUrl);
+  }
+  const item = {
+    process: incident.process,
+    date: incident.date,
+    year: parseDate(incident.date).getFullYear(),
+    month: parseDate(incident.date).getMonth(),
+    subprocess: incident.subprocess,
+    location: incident.location,
+    type: incident.type,
+    summary: incident.summary,
+    photos,
+    createdAt: Date.now()
+  };
+  const docRef = await addDoc(incidentsCollection, item);
+  return docRef.id;
+}
+
+async function updateIncidentOnSP(id, patch, newFiles){
+  const docRef = doc(db, 'incidents', id);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) throw new Error('문서 없음');
+  const existing = docSnap.data();
+  const updateData = {
+    process: patch.process,
+    date: patch.date,
+    year: parseDate(patch.date).getFullYear(),
+    month: parseDate(patch.date).getMonth(),
+    subprocess: patch.subprocess,
+    location: patch.location,
+    type: patch.type,
+    summary: patch.summary
+  };
+  const newPhotos = [];
+  for(let i=0;i<newFiles.length;i++){
+    const dataUrl = await compressImage(newFiles[i], 1600, 0.7);
+    newPhotos.push(dataUrl);
+  }
+  updateData.photos = (existing.photos || []).concat(newPhotos);
+  await updateDoc(docRef, updateData);
+}
+
+async function deleteIncidentOnSP(id){
+  const docRef = doc(db, 'incidents', id);
+  await deleteDoc(docRef);
+}
+
+function toYMDFromISO(iso){
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+
+/* ====== 이미지 처리 ====== */
+function dataUrlToArrayBuffer(dataUrl){
+  const base64 = dataUrl.split(',')[1];
+  const binary = atob(base64);
+  const len = binary.length;
+  const buf = new ArrayBuffer(len);
+  const view = new Uint8Array(buf);
+  for(let i=0;i<len;i++) view[i] = binary.charCodeAt(i);
+  return buf;
+}
+// 이미지 압축: 최대 변 1600px, jpeg 품질 0.7
+function compressImage(file, maxDim=1600, quality=0.7){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const w = img.width, h = img.height;
+        const scale = Math.min(1, maxDim / Math.max(w,h));
+        const cw = Math.round(w*scale), ch = Math.round(h*scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = cw; canvas.height = ch;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0,0, cw,ch);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ====== 캘린더/필터/렌더 ====== */
+function renderCalendar(){
+  const grid = $('#calGrid');
+  grid.innerHTML = '';
+  const first = new Date(state.year, state.month, 1);
+  const last = new Date(state.year, state.month + 1, 0);
+  const startDay = first.getDay(); // 0=일
+  const daysInMonth = last.getDate();
+  $('#calTitle').textContent = `${state.year}년 ${state.month+1}월`;
+
+  // 날짜별 묶기(필터 적용)
+  const filtered = getFiltered();
+  const byDate = new Map();
+  filtered.forEach(it=>{
+    if(!byDate.has(it.date)) byDate.set(it.date, []);
+    byDate.get(it.date).push(it);
+  });
+
+  // 이전 달 말일
+  const prevLast = new Date(state.year, state.month, 0);
+  const prevDays = prevLast.getDate();
+
+  // 1) 이전달
+  for(let i=0;i<startDay;i++){
+    const d = prevDays - startDay + 1 + i;
+    grid.appendChild(dayCell(`${state.year}-${pad2(state.month)}-${pad2(d)}`, d, true, byDate));
+  }
+  // 2) 이번달
+  for(let d=1; d<=daysInMonth; d++){
+    grid.appendChild(dayCell(`${state.year}-${pad2(state.month+1)}-${pad2(d)}`, d, false, byDate));
+  }
+  // 3) 다음달
+  const fillCount = 42 - (startDay + daysInMonth);
+  for(let d=1; d<=fillCount; d++){
+    grid.appendChild(dayCell(`${state.year}-${pad2(state.month+2)}-${pad2(d)}`, d, true, byDate));
+  }
+
+  renderMonthSummary(byDate);
+
+  // 기본 리스트(오늘이 해당월이면 오늘)
+  const todayStr = ymd(new Date());
+  if(state.viewListDate){
+    renderDayList(state.viewListDate);
+  }else if(todayStr.slice(0,7) === `${state.year}-${pad2(state.month+1)}`){
+    renderDayList(todayStr);
+  }else{
+    $('#dayList').innerHTML = '';
+  }
+  // summary도 최신화
+  if(document.querySelector('[data-tab="summary"]')?.classList.contains('active')){
+    renderSummary();
+  }
+}
+
+function dayCell(dateStr, dayNum, inactive, byDate){
+  const div = document.createElement('div');
+  div.className = 'day' + (inactive? ' inactive':'');
+  div.setAttribute('data-date', dateStr);
+  const num = document.createElement('div');
+  num.className = 'num';
+  num.textContent = dayNum;
+  div.appendChild(num);
+
+  const items = byDate.get(dateStr) || [];
+  if(items.length){
+    const counts = {};
+    items.forEach(i=>{ counts[i.type] = (counts[i.type]||0)+1; });
+
+    const dots = document.createElement('div');
+    dots.className = 'dots';
+    Object.entries(counts).forEach(([k,v])=>{
+      const span = document.createElement('span');
+      span.className = `dot ${typeClass(k)}`;
+      span.title = `${k}: ${v}건`;
+      dots.appendChild(span);
+    });
+    div.appendChild(dots);
+
+    const wrap = document.createElement('div');
+    Object.entries(counts).forEach(([k,v])=>{
+      const pill = document.createElement('span');
+      pill.className = `pill ${typeClass(k)}`;
+      pill.textContent = `${k} ${v}`;
+      wrap.appendChild(pill);
+    });
+    div.appendChild(wrap);
+  }
+
+  div.addEventListener('click', ()=>{
+    // 클릭 시 등록 폼 열기 및 날짜 자동 채우기
+    const formTabBtn = document.querySelector('[data-tab="form"]');
+    if(formTabBtn) formTabBtn.click();
+    // 폼의 날짜 필드에 선택한 날짜 채우기
+    if(formEl && formEl.elements && formEl.elements['date']){
+      formEl.elements['date'].value = dateStr;
+    }
+    previewRow.innerHTML = '';
+    state.editingId = null;
+  });
+  return div;
+}
+
+function renderMonthSummary(byDate){
+  const totals = {};
+  for(const arr of byDate.values()){
+    arr.forEach(i=>{ totals[i.type] = (totals[i.type]||0)+1; });
+  }
+  const box = $('#monthSummary');
+  if(Object.keys(totals).length === 0){
+    box.innerHTML = `<span class="hint">해당 월 데이터 없음</span>`;
+    return;
+  }
+  box.innerHTML = Object.entries(totals).map(([k,v])=>{
+    return `<span class="badge ${typeClass(k)}">${k} ${v}</span>`;
+  }).join(' ');
+}
+
+function renderDayList(dateStr){
+  const list = $('#dayList');
+  const arr = getFiltered().filter(i=>i.date===dateStr);
+  if(!arr.length){
+    list.innerHTML = `<div class="hint">${prettyYMD(dateStr)} – 해당 조건의 사건이 없습니다.</div>`;
+    return;
+  }
+  list.innerHTML = `<div class="hint" style="margin-bottom:4px">${prettyYMD(dateStr)} – ${arr.length}건</div>`;
+  arr.forEach(it=>{
+    const item = document.createElement('div');
+    item.className = 'item';
+    const left = document.createElement('div');
+    left.style.flex='1';
+
+    const title = document.createElement('div');
+    title.innerHTML = `
+      <span class="badge ${typeClass(it.type)}">${it.type}</span>
+      <strong>${it.process}</strong> · ${it.subprocess} · <span class="hint">${it.location}</span>
+    `;
+    const sum = document.createElement('div');
+    sum.textContent = it.summary;
+
+    left.appendChild(title);
+    left.appendChild(sum);
+
+    const right = document.createElement('div');
+    right.style.minWidth='120px';
+    const thumbs = document.createElement('div');
+    thumbs.className = 'thumbs';
+    (it.photos||[]).slice(0,3).forEach(src=>{
+      const img = document.createElement('img');
+      img.src = src;
+      thumbs.appendChild(img);
+    });
+    if((it.photos||[]).length>3){
+      const more = document.createElement('div');
+      more.className='hint';
+      more.textContent = `+${it.photos.length-3}`;
+      thumbs.appendChild(more);
+    }
+    right.appendChild(thumbs);
+
+    item.appendChild(left);
+    item.appendChild(right);
+
+    item.addEventListener('click', ()=> openDetail(it.id));
+    list.appendChild(item);
+  });
+}
+
+/* ====== 요약 렌더 ====== */
+function renderSummary(){
+  const container = $('#summaryContent');
+  container.innerHTML = '';
+  const types = ['SI','LTI','아차','MTC','FAC','RWC'];
+  const incidents = state.incidents || [];
+  if(!incidents.length){
+    container.innerHTML = '<div class="hint">해당 월 데이터 없음</div>';
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'summary-grid';
+
+  types.forEach(t=>{
+    const arr = incidents.filter(i=>i.type===t);
+    const counts = {};
+    arr.forEach(i=>{ counts[i.process] = (counts[i.process]||0)+1; });
+    const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+
+    const card = document.createElement('div');
+    card.className = 'summary-card';
+    const iconMap = {SI:'🚨', LTI:'⚠️', 아차:'😅', MTC:'🛠️', FAC:'🏭', RWC:'🔧'};
+    const icon = iconMap[t] || '📊';
+    card.innerHTML = `<div class="summary-header">
+                        <span class="summary-icon">${icon}</span>
+                        <span class="badge ${typeClass(t)}">${t}</span>
+                        ${entries[0] ? `<strong>${entries[0][0]}</strong> — ${entries[0][1]}건` : '<span class="hint">데이터 없음</span>'}
+                      </div>`;
+
+    if(entries.length){
+      const max = entries[0][1];
+      const chart = document.createElement('div');
+      chart.className = 'chart';
+      entries.slice(0,8).forEach(e=>{
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = e[0];
+
+        const wrap = document.createElement('div');
+        wrap.className = 'bar-wrap';
+        const bar = document.createElement('div');
+        bar.className = 'bar ' + typeClass(t);
+        const pct = max ? Math.round(e[1]/max*100) : 0;
+        bar.style.width = pct + '%';
+        wrap.appendChild(bar);
+
+        const val = document.createElement('div');
+        val.className = 'bar-value';
+        val.textContent = e[1] + '건';
+
+        row.appendChild(label);
+        row.appendChild(wrap);
+        row.appendChild(val);
+        chart.appendChild(row);
+      });
+      card.appendChild(chart);
+
+      const table = document.createElement('table');
+      table.className = 'summary-table';
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th>공정</th><th>건수</th></tr>';
+      table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      entries.forEach(e=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${e[0]}</td><td>${e[1]}</td>`;
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      card.appendChild(table);
+    }
+
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
+}
+
+/* ====== 필터 ====== */
+function getFiltered(){
+  const f = state.filter;
+  return state.incidents.filter(it=>{
+    if(f.process && it.process!==f.process) return false;
+    if(f.sub && it.subprocess!==f.sub) return false;
+    if(f.type && it.type!==f.type) return false;
+    return true;
+  });
+}
+const filterProcessEl = $('#filterProcess');
+const filterSubEl = $('#filterSub');
+function getAllSubprocessValuesForMonth(){
+  const set = new Set();
+  state.incidents.forEach(i=>{ if(i.subprocess) set.add(i.subprocess); });
+  return Array.from(set);
+}
+function refreshFilterSubOptions(){
+  const proc = filterProcessEl.value;
+  const bucket = proc ? bucketFromProcess(proc) : null;
+  let options = [];
+  if(bucket){
+    options = SUB_OPTIONS[bucket] || [];
+  }else{
+    const fromMap = new Set([
+      ...SUB_OPTIONS.IB, ...SUB_OPTIONS.OB, ...SUB_OPTIONS.HUB, ...SUB_OPTIONS.ICQA
+    ]);
+    getAllSubprocessValuesForMonth().forEach(v=>fromMap.add(v));
+    options = Array.from(fromMap);
+  }
+  const currentSel = state.filter.sub;
+  buildOptions(filterSubEl, options, {
+    placeholder:'세부공정(전체)', keepAll:true, allowEmpty:true,
+    selected: options.includes(currentSel)? currentSel : ''
+  });
+}
+filterProcessEl.addEventListener('change', e=>{
+  state.filter.process = e.target.value;
+  state.filter.sub = '';
+  refreshFilterSubOptions(); renderCalendar();
+});
+filterSubEl.addEventListener('change', e=>{ state.filter.sub = e.target.value; renderCalendar(); });
+$('#filterType').addEventListener('change', e=>{ state.filter.type = e.target.value; renderCalendar(); });
+
+/* ====== 탭/내비 ====== */
+$$('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    $$('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    $('#calendar').style.display = (tab==='calendar'?'block':'none');
+    $('#form').style.display = (tab==='form'?'block':'none');
+    $('#summary').style.display = (tab==='summary'?'block':'none');
+    if(tab==='summary') renderSummary();
+  });
+});
+$('#prevMonth').addEventListener('click', async ()=>{
+  if(state.month===0){ state.month=11; state.year--; } else state.month--;
+  await loadIncidentsFromSP(state.year, state.month);
+  refreshFilterSubOptions(); renderCalendar();
+});
+$('#nextMonth').addEventListener('click', async ()=>{
+  if(state.month===11){ state.month=0; state.year++; } else state.month++;
+  await loadIncidentsFromSP(state.year, state.month);
+  refreshFilterSubOptions(); renderCalendar();
+});
+$('#todayBtn').addEventListener('click', async ()=>{
+  const now = new Date();
+  state.year = now.getFullYear();
+  state.month = now.getMonth();
+  state.viewListDate = ymd(now);
+  await loadIncidentsFromSP(state.year, state.month);
+  refreshFilterSubOptions(); renderCalendar();
+});
+// reload button removed
+
+$('#clearBtn').addEventListener('click', async ()=>{
+  if(!confirm('모든 캘린더 데이터를 초기화합니다. Firebase에서 모든 데이터를 삭제합니다. 복구할 수 없습니다. 계속하시겠습니까?')) return;
+  try{
+    const querySnapshot = await getDocs(incidentsCollection);
+    const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+    state.incidents = [];
+    state.viewListDate = null;
+    await loadIncidentsFromSP(state.year, state.month);
+    refreshFilterSubOptions(); renderCalendar();
+    alert('모든 데이터가 초기화되었습니다.');
+  }catch(err){
+    console.error(err);
+    alert('초기화 실패: ' + err.message);
+  }
+});
+
+/* ====== 폼: 공정 → 세부공정 연동 ====== */
+const formEl = $('#incidentForm');
+const formProcessEl = $('#formProcess');
+const formSubEl = $('#formSubprocess');
+function refreshFormSubOptions(proc, keepSelected){
+  const bucket = bucketFromProcess(proc||'');
+  const options = SUB_OPTIONS[bucket] || [];
+  const current = keepSelected ? formSubEl.value : '';
+  buildOptions(formSubEl, options, {placeholder:'세부공정 선택', keepAll:false, allowEmpty:true, selected: options.includes(current)? current : ''});
+  const first = formSubEl.querySelector('option[value=""]');
+  if(first){ first.disabled = true; }
+}
+formProcessEl.addEventListener('change', e=>{ refreshFormSubOptions(e.target.value, false); });
+
+/* ====== 폼: 사진 미리보기 ====== */
+const photoInput = $('#photoInput');
+const previewRow = $('#previewRow');
+photoInput.addEventListener('change', async ()=>{
+  previewRow.innerHTML='';
+  const files = Array.from(photoInput.files||[]);
+  for(const f of files){
+    const url = URL.createObjectURL(f);
+    const img = document.createElement('img');
+    img.src = url; img.style.height='72px'; img.style.borderRadius='8px'; img.style.border='1px solid var(--border)';
+    previewRow.appendChild(img);
+  }
+});
+
+/* ====== 등록/수정 제출 ====== */
+formEl.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(formEl);
+  const incident = {
+    process: fd.get('process'),
+    date: fd.get('date'),
+    subprocess: fd.get('subprocess'),
+    location: fd.get('location'),
+    type: fd.get('type'),
+    summary: fd.get('summary')
+  };
+  for(const k of ['process','date','subprocess','location','type','summary']){
+    if(!incident[k]){ alert('모든 필드를 입력해주세요.'); return; }
+  }
+  const files = Array.from(photoInput.files||[]);
+
+  try{
+    if(state.editingId){
+      await updateIncidentOnSP(state.editingId, incident, files);
+    }else{
+      await createIncidentOnSP(incident, files);
+    }
+    alert('저장되었습니다.');
+    formEl.reset(); previewRow.innerHTML='';
+    document.querySelector('[data-tab="calendar"]').click();
+    state.viewListDate = incident.date;
+    state.year = parseDate(incident.date).getFullYear();
+    state.month = parseDate(incident.date).getMonth();
+    await loadIncidentsFromSP(state.year, state.month);
+    refreshFilterSubOptions(); renderCalendar();
+    state.editingId = null;
+  }catch(err){
+    console.error(err);
+    alert('저장 중 오류: ' + err.message);
+  }
+});
+
+/* ====== 상세 보기/수정/삭제 ====== */
+function openDetail(id){
+  const it = state.incidents.find(x=>x.id===id);
+  if(!it) return;
+  state.currentDetailId = id;
+  $('#detailTitle').textContent = `[${it.type}] ${it.process} · ${it.subprocess}`;
+  $('#detailMeta').textContent = `${prettyYMD(it.date)} · ${it.location}`;
+  $('#detailSummary').textContent = it.summary;
+  const gal = $('#detailGallery');
+  gal.innerHTML='';
+  (it.photos||[]).forEach(src=>{
+    const img = document.createElement('img');
+    img.src = src;
+    img.addEventListener('click', ()=>{
+      $('#fullImg').src = src;
+      $('#fullBackdrop').style.display = 'flex';
+    });
+    gal.appendChild(img);
+  });
+  $('#detailBackdrop').style.display='flex';
+}
+$('#closeDetail').addEventListener('click', ()=> $('#detailBackdrop').style.display='none');
+$('#detailBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='detailBackdrop') $('#detailBackdrop').style.display='none'; });
+$('#fullBackdrop').addEventListener('click', ()=> $('#fullBackdrop').style.display='none');
+
+$('#deleteBtn').addEventListener('click', async ()=>{
+  const id = state.currentDetailId;
+  if(!id) return;
+  if(confirm('이 사건을 삭제하시겠습니까?')){
+    try{
+      await deleteIncidentOnSP(id);
+      $('#detailBackdrop').style.display='none';
+      await loadIncidentsFromSP(state.year, state.month);
+      refreshFilterSubOptions(); renderCalendar();
+    }catch(err){
+      alert('삭제 실패: ' + err.message);
+    }
+  }
+});
+
+$('#editBtn').addEventListener('click', ()=>{
+  const id = state.currentDetailId;
+  const it = state.incidents.find(x=>x.id===id);
+  if(!it) return;
+  // 폼으로 이동 & 값 채우기
+  document.querySelector('[data-tab="form"]').click();
+  $('#formProcess').value = it.process;
+  refreshFormSubOptions(it.process, false);
+  formEl.elements['date'].value = it.date;
+  $('#formSubprocess').value = it.subprocess;
+  formEl.elements['location'].value = it.location;
+  formEl.elements['type'].value = it.type;
+  formEl.elements['summary'].value = it.summary;
+  previewRow.innerHTML = '';
+  // 수정 시 새로 선택한 파일만 추가 업로드(기존 첨부 유지)
+  alert('편집 모드: 값 수정 후 "저장"을 누르면 항목이 업데이트되며, 선택한 새 사진이 첨부로 추가됩니다.');
+  state.editingId = id;
+});
+
+/* ====== 초기 로드 ====== */
+(async function init(){
+  try{
+    // 폼 초기 오늘 날짜/세부공정 placeholder
+    formEl.elements['date'].value = ymd(new Date());
+    refreshFormSubOptions($('#formProcess').value, false);
+    // 데이터 로드
+    await loadIncidentsFromSP(state.year, state.month);
+    refreshFilterSubOptions();
+    renderCalendar();
+  }catch(err){
+    console.error(err);
+    alert('초기 로드 오류: ' + err.message);
+  }
+})();
+</script>
+</body>
+</html>
